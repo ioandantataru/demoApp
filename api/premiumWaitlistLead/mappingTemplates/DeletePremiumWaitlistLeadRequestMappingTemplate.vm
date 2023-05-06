@@ -1,0 +1,6 @@
+{
+    "Item": {
+        "email": $input.json('$.Item.email'),
+        "id": $input.json('$.Item.id')
+    }
+}

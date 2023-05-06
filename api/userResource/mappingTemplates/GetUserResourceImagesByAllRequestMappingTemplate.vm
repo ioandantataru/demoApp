@@ -1,0 +1,6 @@
+{
+    "Item": {
+        "linkId": $input.json('$.Item.linkId'),
+        "includeImageData": $input.json('$.Item.includeImageData')
+    }
+}

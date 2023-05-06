@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CreateFeedbackByUserRequest",
+  "description": "Validate params passed to the create feedback by user api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "feedbackMessage": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "feedbackType": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        }
+      },
+      "required": ["feedbackMessage", "feedbackType"],
+      "minProperties": 2,
+      "maxProperties": 2
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

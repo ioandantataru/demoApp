@@ -1,0 +1,7 @@
+{
+    "Item": {
+        "userIdOrEmail": $input.json('$.Item.userIdOrEmail'),
+        "feedbackMessage": $input.json('$.Item.feedbackMessage'),
+        "feedbackType": $input.json('$.Item.feedbackType')
+    }
+}

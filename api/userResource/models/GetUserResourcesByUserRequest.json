@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GetUserResourcesByUserRequest",
+  "description": "Validate params passed to the get-userResources-by-user api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "maxProperties": 1
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

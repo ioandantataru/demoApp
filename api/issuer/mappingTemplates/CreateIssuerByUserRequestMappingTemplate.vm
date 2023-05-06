@@ -1,0 +1,19 @@
+{
+    "Item": {
+        "name": $input.json('$.Item.name'),
+        "otherNames": $input.json('$.Item.otherNames'),
+        "type": $input.json('$.Item.type'),
+        "country": $input.json('$.Item.country'),
+        "province": $input.json('$.Item.province'),
+        "city": $input.json('$.Item.city'),
+        "abbreviations": $input.json('$.Item.abbreviations'),
+        "website": $input.json('$.Item.website'),
+        "wikiLink": $input.json('$.Item.wikiLink')
+    },
+    "headers": {
+        #foreach($param in $input.params().header.keySet())
+        "$param": "$util.escapeJavaScript($input.params().header.get($param))" #if($foreach.hasNext),#end
+        
+        #end
+    }
+}

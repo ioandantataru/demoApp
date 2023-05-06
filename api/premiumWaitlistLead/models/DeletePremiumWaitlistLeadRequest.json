@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "DeletePremiumWaitlistLeadRequest",
+  "description": "Validate params passed to the delete premium waitlist lead api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 50
+        },
+        "id": {
+          "type": "string",
+          "minLength": 22,
+          "maxLength": 22
+        }
+      },
+      "required": ["email", "id"],
+      "maxProperties": 2
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

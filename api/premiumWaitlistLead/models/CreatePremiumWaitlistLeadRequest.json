@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CreatePremiumWaitlistLeadRequest",
+  "description": "Validate params passed to the create premium waitlist lead api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 50
+        }
+      },
+      "required": ["email"],
+      "maxProperties": 1
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

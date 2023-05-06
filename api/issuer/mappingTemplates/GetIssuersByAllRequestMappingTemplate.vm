@@ -1,0 +1,7 @@
+{
+    "Item": {
+        "searchString": $input.json('$.Item.searchString'),
+        "limit": $input.json('$.Item.limit'),
+        "startAfterSortKey": $input.json('$.Item.startAfterSortKey')
+    }
+}

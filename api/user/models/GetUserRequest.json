@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GetUserRequest",
+  "description": "Validate params passed to the get-user api",
+  "type": "object",
+  "maxProperties": 0
+}

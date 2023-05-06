@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "DeleteUserResourceImageByUserRequest",
+  "description": "Validate params passed to the delete userResource image api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 256
+        }
+      },
+      "required": ["fileName"],
+      "maxProperties": 1
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

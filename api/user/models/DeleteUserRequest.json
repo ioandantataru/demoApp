@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "DeleteUserRequest",
+  "description": "Validate params passed to the delete-user api",
+  "type": "object",
+  "maxProperties": 0
+}

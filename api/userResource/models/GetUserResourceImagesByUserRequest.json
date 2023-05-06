@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GetUserResourceImagesByAllRequest",
+  "description": "Validate params passed to the get-userResource api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "linkId": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 36
+        },
+        "includeImageData": {
+          "type": "boolean"
+        }
+      },
+      "required": ["linkId"],
+      "maxProperties": 2
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

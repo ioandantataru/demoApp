@@ -1,0 +1,21 @@
+{
+    "Item": {
+        "userNameAtIssue": $input.json('$.Item.userNameAtIssue'),
+        "studentId": $input.json('$.Item.studentId'),
+        "issuerId": $input.json('$.Item.issuerId'),
+        "userResourceTitle": $input.json('$.Item.userResourceTitle'),
+        "userResourceType": $input.json('$.Item.userResourceType'),
+        "issueDateTime": $input.json('$.Item.issueDateTime'),
+        "expirationDateTime": $input.json('$.Item.expirationDateTime'),
+        "perks": $input.json('$.Item.perks'),
+        "level": $input.json('$.Item.level'),
+        "templatePhotoId": $input.json('$.Item.templatePhotoId')
+    },
+    "ImagesProofArray": $input.json('$.ImagesProofArray'),
+    "headers": {
+        #foreach($param in $input.params().header.keySet())
+        "$param": "$util.escapeJavaScript($input.params().header.get($param))" #if($foreach.hasNext),#end
+        
+        #end
+    }
+}

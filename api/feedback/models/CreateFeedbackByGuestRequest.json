@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CreateFeedbackByGuestRequest",
+  "description": "Validate params passed to the create feedback by guest api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "userIdOrEmail": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 50
+        },
+        "feedbackMessage": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "feedbackType": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        }
+      },
+      "required": ["userIdOrEmail", "feedbackMessage", "feedbackType"],
+      "minProperties": 3,
+      "maxProperties": 3
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

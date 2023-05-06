@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "UploadUserResourceImagesByUserRequest",
+  "description": "Validate params passed to the create-userResource api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "imagesId": {
+          "type": "string",
+          "minLength": 22,
+          "maxLength": 22
+        }
+      },
+      "maxProperties": 1
+    },
+    "ImagesProofArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "image": { "type": "string", "maxLength": 1048576 },
+            "name": { "type": "string", "maxLength": 100 },
+            "mime": { "type": "string", "maxLength": 100 }
+          },
+          "required": ["image", "name", "mime"],
+          "maxProperties": 3
+        },
+        {
+          "type": "object",
+          "properties": {
+            "image": { "type": "string", "maxLength": 1048576 },
+            "name": { "type": "string", "maxLength": 100 },
+            "mime": { "type": "string", "maxLength": 100 }
+          },
+          "required": ["image", "name", "mime"],
+          "maxProperties": 3
+        },
+        {
+          "type": "object",
+          "properties": {
+            "image": { "type": "string", "maxLength": 1048576 },
+            "name": { "type": "string", "maxLength": 100 },
+            "mime": { "type": "string", "maxLength": 100 }
+          },
+          "required": ["image", "name", "mime"],
+          "maxProperties": 3
+        },
+        {
+          "type": "object",
+          "properties": {
+            "image": { "type": "string", "maxLength": 1048576 },
+            "name": { "type": "string", "maxLength": 100 },
+            "mime": { "type": "string", "maxLength": 100 }
+          },
+          "required": ["image", "name", "mime"],
+          "maxProperties": 3
+        },
+        {
+          "type": "object",
+          "properties": {
+            "image": { "type": "string", "maxLength": 1048576 },
+            "name": { "type": "string", "maxLength": 100 },
+            "mime": { "type": "string", "maxLength": 100 }
+          },
+          "required": ["image", "name", "mime"],
+          "maxProperties": 3
+        }
+      ]
+    }
+  },
+  "required": ["ImagesProofArray"],
+  "maxProperties": 2
+}

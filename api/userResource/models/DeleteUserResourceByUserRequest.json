@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "DeleteUserResourceRequest",
+  "description": "Validate params passed to the delete-userResource api",
+  "type": "object",
+  "properties": {
+    "Item": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 22,
+          "maxLength": 22
+        }
+      },
+      "required": ["id"],
+      "maxProperties": 1
+    }
+  },
+  "required": ["Item"],
+  "maxProperties": 1
+}

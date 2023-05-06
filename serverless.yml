@@ -1,0 +1,2336 @@
+org: app
+app: app
+tenant: Ioan Dan Tataru
+service: app
+
+frameworkVersion: '2'
+
+custom:
+  prune: #https://github.com/claygregory/serverless-prune-plugin
+    automatic: true
+    number: 50
+  settings:
+    cognitoARN-dev: arn:aws:cognito-idp:us-west-2:916917025884:userpool/us-west-2_ZD4kzxqWv
+    cognitoARN-prod: arn:aws:cognito-idp:us-west-2:916917025884:userpool/us-west-2_JhTgVmr7x
+    cognitoPoolNameDev: app-nextjs-dev-v2
+    cognitoPoolNameProd: app-nextjs-prod-v2
+  #  admin-AWS-ACCESS-KEY-ID: ${ssm:/app/admin-AWS-ACCESS-KEY-ID}
+  #  admin-AWS-SECRET-ACCESS-KEY-ID: ${ssm:/app/admin-AWS-SECRET-ACCESS-KEY-ID}
+  serverlessIfElse:
+    - If: '"${self:provider.stage}" == "prod"'
+      Set:
+        userResources.IssuerSearchKeysTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: true
+        userResources.PremiumWaitlistLeadTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: true
+        userResources.FeedbackTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: true
+        userResources.UsersTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: true
+        userResources.IssuersTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: true
+        userResources.UserResourcesTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: true
+      ElseSet:
+        userResources.IssuerSearchKeysTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: false
+        userResources.PremiumWaitlistLeadTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: false
+        userResources.FeedbackTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: false
+        userResources.UsersTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: false
+        userResources.IssuersTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: false
+        userResources.UserResourcesTable.Properties.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled: false
+  allowedHeaders:
+    - Accept
+    - Content-Type
+    - Content-Length
+    - Authorization
+    - X-Amz-Date
+    - X-Api-Key
+    - X-Amz-Security-Token
+    - X-Amz-User-Agent
+    - app_user_id
+    - app_user_name
+  responseStatusCodes:
+    200:
+      pattern: ''
+    400:
+      pattern: '.*("statusCode":"400"|"code":"ConditionalCheckFailedException"|"code":"Bad\s?Request").*'
+      template: $input.path('$.errorMessage')
+    401:
+      pattern: '.*("statusCode":"401"|"code":"Unauthorized").*'
+      template: $input.path('$.errorMessage')
+    402:
+      pattern: '.*("statusCode":"402"|"code":"Account\s?Limit").*'
+      template: $input.path('$.errorMessage')
+    404:
+      pattern: '.*("statusCode":"404"|"code":"ItemNotFound"|"code":"Missing").*'
+      template: $input.path('$.errorMessage')
+    406:
+      pattern: '.*("statusCode":"406"|"code":"Validation\s?Error").*'
+      template: $input.path('$.errorMessage')
+    409:
+      pattern: '.*("statusCode":"409"|"code":"Conflict").*'
+      template: $input.path('$.errorMessage')
+    500:
+      pattern: '.*("statusCode":"500"|"code":"Internal\s?Error"| has already been declared"|error|Error).*'
+      template: $input.path('$.errorMessage')
+  #customDomain: # meant for serverless-domain-manager plugin which only works with serverless-offline plugin that gets messed up on aws CodeBuild#
+  #  domainName: api.app.com
+  #basePath: 'v2'
+  #  stage: ${self:provider.stage}
+  #  userResourceName: app.com
+  #  createRoute53Record: true # maps app.com to our cloudfront prod link
+  documentation:
+    api:
+      info:
+        version: ${self:provider.environment.VERSION}
+        title: CRUD apis (REST architecture)
+        description: apis to create, request, update and delete issuers, userResources and user user data
+    models:
+      - name: OpenaiParseWikiRequest
+        contentType: application/json
+        schema: ${file(api/wikiParsing/models/OpenaiParseWikiRequest.json)}
+      # --- Create Premium Waitlist Lead ---
+      - name: CreatePremiumWaitlistLeadRequest
+        contentType: application/json
+        schema: ${file(api/premiumWaitlistLead/models/CreatePremiumWaitlistLeadRequest.json)}
+      - name: DeletePremiumWaitlistLeadRequest
+        contentType: application/json
+        schema: ${file(api/premiumWaitlistLead/models/DeletePremiumWaitlistLeadRequest.json)}
+      # --- Create Feedback ---
+      - name: CreateFeedbackByUserRequest
+        contentType: application/json
+        schema: ${file(api/feedback/models/CreateFeedbackByUserRequest.json)}
+      - name: CreateFeedbackByGuestRequest
+        contentType: application/json
+        schema: ${file(api/feedback/models/CreateFeedbackByGuestRequest.json)}
+      # --- CRUD User ---
+      - name: CreateUserRequest
+        contentType: application/json
+        schema: ${file(api/user/models/CreateUserRequest.json)}
+      - name: DeleteUserRequest
+        contentType: application/json
+        schema: ${file(api/user/models/DeleteUserRequest.json)}
+      - name: GetUserRequest
+        contentType: application/json
+        schema: ${file(api/user/models/GetUserRequest.json)}
+      - name: UpdateUserRequest
+        contentType: application/json
+        schema: ${file(api/user/models/UpdateUserRequest.json)}
+      # --- Create Issuer ---
+      - name: CreateIssuerByGuestRequest
+        contentType: application/json
+        schema: ${file(api/issuer/models/CreateIssuerByGuestRequest.json)}
+      ###- name: CreateIssuerByVerifierRequest
+      ###  contentType: application/json
+      ###  schema: ${file(api/issuer/models/CreateIssuerByVerifierRequest.json)}
+      - name: CreateIssuerByUserRequest
+        contentType: application/json
+        schema: ${file(api/issuer/models/CreateIssuerByUserRequest.json)}
+      ###- name: CreateIssuerByIssuerAdminRequest
+      ###  contentType: application/json
+      ###  schema: ${file(api/issuer/models/CreateIssuerByIssuerAdminRequest.json)}
+      #- name: CreateIssuerByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/issuer/models/CreateIssuerByPlatformAdminRequest.json)}
+      # --- Delete Issuer ---
+      - name: DeleteIssuerByIssuerAdminRequest
+        contentType: application/json
+        schema: ${file(api/issuer/models/DeleteIssuerByIssuerAdminRequest.json)}
+      #- name: DeleteIssuerByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/issuer/models/DeleteIssuerByPlatformAdminRequest.json)}
+      # --- Get Issuer (by Id) ---
+      - name: GetIssuerByAllRequest
+        contentType: application/json
+        schema: ${file(api/issuer/models/GetIssuerByAllRequest.json)}
+      # --- Get multiple Issuers ---
+      - name: GetIssuersByAllRequest
+        contentType: application/json
+        schema: ${file(api/issuer/models/GetIssuersByAllRequest.json)}
+      # --- Update Issuer ---
+      ###-- name: UpdateIssuerByIssuerAdminRequest
+      ###-  contentType: application/json
+      ###-  schema: ${file(api/issuer/models/UpdateIssuerByIssuerAdminRequest.json)}
+      #- name: UpdateIssuerByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/issuer/models/UpdateIssuerByPlatformAdminRequest.json)}
+      # --- Create UserResource ---
+      - name: CreateUserResourceByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/CreateUserResourceByUserRequest.json)}
+      ###-- name: CreateUserResourceByIssuerAdminRequest
+      ###-  contentType: application/json
+      ###-  schema: ${file(api/userResource/models/CreateUserResourceByIssuerAdminRequest.json)}
+      #- name: CreateUserResourceByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/userResource/models/CreateUserResourceByPlatformAdminRequest.json)}
+      # --- Delete UserResource ---
+      - name: DeleteUserResourceByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/DeleteUserResourceByUserRequest.json)}
+      ###-- name: DeleteUserResourceByIssuerAdminRequest
+      ###-  contentType: application/json
+      ###-  schema: ${file(api/userResource/models/DeleteUserResourceByIssuerAdminRequest.json)}
+      #- name: DeleteUserResourceByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/userResource/models/DeleteUserResourceByPlatformAdminRequest.json)}
+      # --- Get UserResource (By id) ---
+      - name: GetUserResourceByGuestRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/GetUserResourceByGuestRequest.json)}
+      ###- name: GetUserResourceByVerifierRequest
+      ###  contentType: application/json
+      ###  schema: ${file(api/userResource/models/GetUserResourceByVerifierRequest.json)}
+      - name: GetUserResourceByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/GetUserResourceByUserRequest.json)}
+      ###-- name: GetUserResourceByIssuerAdminRequest
+      ###-  contentType: application/json
+      ###-  schema: ${file(api/userResource/models/GetUserResourceByIssuerAdminRequest.json)}
+      #- name: GetUserResourceByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/userResource/models/GetUserResourceByPlatformAdminRequest.json)}
+      # --- Get multiple UserResources ---
+      - name: GetUserResourcesByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/GetUserResourcesByUserRequest.json)}
+      ###-- name: GetUserResourcesByIssuerAdminRequest
+      ###-  contentType: application/json
+      ###-  schema: ${file(api/userResource/models/GetUserResourcesByIssuerAdminRequest.json)}
+      #- name: GetUserResourcesByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/userResource/models/GetUserResourcesByPlatformAdminRequest.json)}
+      # --- Update Certficiate ---
+      - name: UpdateUserResourceByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/UpdateUserResourceByUserRequest.json)}
+      ###-- name: UpdateUserResourceByIssuerAdminRequest
+      ###-  contentType: application/json
+      ###-  schema: ${file(api/userResource/models/UpdateUserResourceByIssuerAdminRequest.json)}
+      #- name: UpdateUserResourceByPlatformAdminRequest
+      #  contentType: application/json
+      #  schema: ${file(api/userResource/models/UpdateUserResourceRequest.json)}
+      # --- Certficiate Images ---
+      - name: UploadUserResourceImagesByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/UploadUserResourceImagesByUserRequest.json)}
+      - name: DeleteUserResourceImageByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/DeleteUserResourceImageByUserRequest.json)}
+      - name: GetUserResourceImagesByAllRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/GetUserResourceImagesByAllRequest.json)}
+      - name: GetUserResourceImagesByUserRequest
+        contentType: application/json
+        schema: ${file(api/userResource/models/GetUserResourceImagesByUserRequest.json)}
+
+plugins:
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
+  - serverless-plugin-ifelse
+  - serverless-prune-plugin
+  #- serverless-domain-manager
+  #- serverless-offline # needs to be last: https://github.com/99x/serverless-dynamodb-local#using-with-serverless-offline-and-serverless-webpack-plugin
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: us-west-2
+  #profile: admin
+  stage: ${opt:stage, 'dev'}
+  memorySize: 128
+  timeout: 5
+  endpointType: regional
+  environment:
+    ENV_NAME: ${self:service}-${self:provider.stage}
+    VERSION: v0.0.7
+    S3_ACCESS_KEY: ${env:S3_ACCESS_KEY}
+    S3_SECURITY_KEY: ${env:S3_SECURITY_KEY}
+    #COGNITO_IDENTITY_POOL_ID_DEV: us-west-2:5b4eba42-1333-4e41-ace6-ed7cae6ad7d4
+    USERRESOURCE_BUCKET_NAME: userResource-proof-bucket-${self:provider.environment.ENV_NAME}
+    USER_IDENTITY_BUCKET_NAME: user-identity-proof-bucket-${self:provider.environment.ENV_NAME}
+  lambdaHashingVersion: 20201221
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem #delete issuer by admin
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/ISSUERS-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem #delete issuer by admin
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/ISSUERS-${self:provider.environment.ENV_NAME}/index/*'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem # pre-signup lambda needs this
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/USERRESOURCES-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem # pre-signup lambda needs this
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/USERRESOURCES-${self:provider.environment.ENV_NAME}/index/*'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem # pre-signup lambda needs this
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/USERS-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem # pre-signup lambda needs this
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/USERS-${self:provider.environment.ENV_NAME}/index/*'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        #- dynamodb:UpdateItem
+        #- dynamodb:DeleteItem
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/FEEDBACK-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        #- dynamodb:UpdateItem
+        #- dynamodb:DeleteItem
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/FEEDBACK-${self:provider.environment.ENV_NAME}/index/*'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        #- dynamodb:DeleteItem
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/PREMIUMWAITLISTLEAD-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        #- dynamodb:DeleteItem
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/PREMIUMWAITLISTLEAD-${self:provider.environment.ENV_NAME}/index/*'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem #delete issuer by admin
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/ISSUERSEARCHKEYS-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem #delete issuer by admin
+      UserResource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/ISSUERSEARCHKEYS-${self:provider.environment.ENV_NAME}/index/*'
+    - Effect: Allow
+      Action:
+        - 's3:ListBucket'
+        - 's3:GetObject'
+        - 's3:PutObject'
+        - 's3:PutObjectAcl'
+        - 's3:DeleteObject'
+        - 's3:AbortMultipartUpload'
+      UserResource: 'arn:aws:s3:::userResource-proof-bucket-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - 's3:ListBucket'
+        - 's3:GetObject'
+        - 's3:PutObject'
+        - 's3:PutObjectAcl'
+        - 's3:DeleteObject'
+        - 's3:AbortMultipartUpload'
+      UserResource: 'arn:aws:s3:::userResource-proof-bucket-${self:provider.environment.ENV_NAME}/*'
+    - Effect: Allow
+      Action:
+        - 's3:ListBucket'
+        - 's3:GetObject'
+        - 's3:PutObject'
+        - 's3:PutObjectAcl'
+        - 's3:DeleteObject'
+        - 's3:AbortMultipartUpload'
+      UserResource: 'arn:aws:s3:::user-identity-proof-bucket-${self:provider.environment.ENV_NAME}'
+    - Effect: Allow
+      Action:
+        - 's3:ListBucket'
+        - 's3:GetObject'
+        - 's3:PutObject'
+        - 's3:PutObjectAcl'
+        - 's3:DeleteObject'
+        - 's3:AbortMultipartUpload'
+      UserResource: 'arn:aws:s3:::user-identity-proof-bucket-${self:provider.environment.ENV_NAME}/*'
+  #https://medium.com/ringcentral-developers/use-serverless-framework-and-aws-vpc-to-protect-your-chatbot-userResources-4ed21e957dea
+  #vpc:
+  #  securityGroupIds:
+  #    - Ref: LambdaSecurityGroup
+  #  subnetIds:
+  #    - Ref: PrivateSubnet1
+  #    - Ref: PrivateSubnet2
+  #    - Ref: PrivateSubnet3
+
+###################################################  Lambdas  ###################################################
+functions:
+  #authenticate-google:
+  #  handler: api/authenticate-google.handler
+  #  description: Google IDP Authentication
+  #  events:
+  #    - http:
+  #        path: auth
+  #        method: get
+  #        cors:
+  #          origin: '*'
+  #          headers: ${self:custom.allowedHeaders}
+  preSignUp:
+    handler: api/preSignUp.handler
+    events:
+      - cognitoUserPool:
+          pool: app-nextjs-${self:provider.stage}-v2
+          trigger: PreSignUp
+          existing: true
+          forceDeploy: true
+  preTokenGeneration:
+    handler: api/preTokenGeneration.handler
+    events:
+      - cognitoUserPool:
+          pool: app-nextjs-${self:provider.stage}-v2
+          trigger: PreTokenGeneration
+          existing: true
+          forceDeploy: true
+  # openaiParseWiki:
+  #   handler: api/wikiParsing/openaiParseWiki.handler
+  #   description: POST /openaiParseWiki
+  #   vpc:
+  #     securityGroupIds:
+  #       - Ref: LambdaSecurityGroup
+  #     subnetIds:
+  #       - Ref: PublicSubnet1
+  #   timeout: 900 # need a long time because openai can be very slow
+  #   events:
+  #     - http:
+  #         path: api/openaiParseWiki
+  #         method: post
+  #         cors:
+  #           origin: '*'
+  #           headers: ${self:custom.allowedHeaders}
+  #         reqValidatorName: openaiParseWikiBodyRequestValidator
+  #         documentation:
+  #           summary: api to parse a wikilink with openai
+  #           description: api to parse a wikilink with openai
+  #           #requestHeaders:
+  #           #  - name: x-some-header
+  #           #    description: some header value
+  #           #    required: true # true or false
+  #           requestBody:
+  #             description: validates req body params passed
+  #           requestModels:
+  #             application/json: OpenaiParseWikiRequest
+  #         integration: lambda
+  #         request:
+  #           template:
+  #             application/json: ${file(api/wikiParsing/mappingTemplates/OpenaiParseWikiRequestMappingTemplate.vm)}
+  #           passThrough: NEVER
+  #         response:
+  #           statusCodes: ${self:custom.responseStatusCodes}
+  createPremiumWaitlistLead:
+    handler: api/premiumWaitlistLead/createPremiumWaitlistLead.handler
+    description: POST /createPremiumWaitlistLead
+    events:
+      - http:
+          path: api/createPremiumWaitlistLead
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: premiumWaitlistLeadBodyRequestValidator
+          documentation:
+            summary: api to create a premium waitlist lead
+            description: api to create an premium waitlist lead by sending required parameters
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreatePremiumWaitlistLeadRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/premiumWaitlistLead/mappingTemplates/CreatePremiumWaitlistLeadRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  deletePremiumWaitlistLead:
+    handler: api/premiumWaitlistLead/deletePremiumWaitlistLead.handler
+    description: POST /deletePremiumWaitlistLead
+    events:
+      - http:
+          path: api/deletePremiumWaitlistLead
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: premiumWaitlistLeadBodyRequestValidator
+          documentation:
+            summary: api to delete a premium waitlist lead
+            description: api to delete an premium waitlist lead by sending required parameters
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: DeletePremiumWaitlistLeadRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/premiumWaitlistLead/mappingTemplates/DeletePremiumWaitlistLeadRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  createFeedbackByUser:
+    handler: api/feedback/createFeedbackByUser.handler
+    description: POST /createFeedbackByUser
+    events:
+      - http:
+          path: api/createFeedbackByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: feedbackBodyRequestValidator
+          documentation:
+            summary: api to create a feedback by user
+            description: api to create an feedback by sending required parameters as a user user
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreateFeedbackByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/feedback/mappingTemplates/CreateFeedbackByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  createFeedbackByGuest:
+    handler: api/feedback/createFeedbackByGuest.handler
+    description: POST /createFeedbackByGuest
+    events:
+      - http:
+          path: api/createFeedbackByGuest
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: feedbackBodyRequestValidator
+          documentation:
+            summary: api to create a feedback by guest
+            description: api to create an feedback by sending required parameters as a guest
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreateFeedbackByGuestRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/feedback/mappingTemplates/CreateFeedbackByGuestRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  createUser:
+    handler: api/user/createUser.handler
+    description: POST /createUser
+    events:
+      - http:
+          path: api/createUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userBodyRequestValidator
+          documentation:
+            summary: api to create an user by user
+            description: api to create an user by sending required parameters as a user user
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreateUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/user/mappingTemplates/CreateUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  deleteUser:
+    handler: api/user/deleteUser.handler
+    description: POST /deleteUser
+    events:
+      - http:
+          path: api/deleteUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userBodyRequestValidator
+          documentation:
+            summary: api to delete an user by User
+            description: api to delete an user by sending required parameters (status will become PENDING until approved) as an User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: DeleteUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/user/mappingTemplates/DeleteUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  updateUser:
+    handler: api/user/updateUser.handler
+    description: POST /updateUser
+    events:
+      - http:
+          path: api/updateUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userBodyRequestValidator
+          documentation:
+            summary: api to delete an user by User
+            description: api to delete an user by sending required parameters (status will become PENDING until approved) as an User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: UpdateUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/user/mappingTemplates/UpdateUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  getUser:
+    handler: api/user/getUser.handler
+    description: POST /getUser
+    events:
+      - http:
+          path: api/getUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userBodyRequestValidator
+          documentation:
+            summary: api to delete an user by User
+            description: api to delete an user by sending required parameters (status will become PENDING until approved) as an User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/user/mappingTemplates/GetUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  createIssuerByGuest:
+    handler: api/issuer/createIssuerByGuest.handler
+    description: POST /createIssuerByGuest
+    events:
+      - http:
+          path: api/createIssuerByGuest
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: issuerBodyRequestValidator
+          documentation:
+            summary: api to create an issuer by guest
+            description: api to create an issuer by sending required parameters as a guest user
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreateIssuerByGuestRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/issuer/mappingTemplates/CreateIssuerByGuestRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###createIssuerByVerifier:
+  ###  handler: api/issuer/createIssuerByVerifier.handler
+  ###  description: POST /createIssuerByVerifier
+  ###  events:
+  ###    - http:
+  ###        path: api/createIssuerByVerifier
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: issuerBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to create an issuer by verifier
+  ###          description: api to create an issuer by sending required parameters as a verifier user
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: CreateIssuerByVerifierRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/issuer/mappingTemplates/CreateIssuerByVerifierRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  createIssuerByUser:
+    handler: api/issuer/createIssuerByUser.handler
+    description: POST /createIssuerByUser
+    events:
+      - http:
+          path: api/createIssuerByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: issuerBodyRequestValidator
+          documentation:
+            summary: api to create an issuer by user
+            description: api to create an issuer by sending required parameters as a user user
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreateIssuerByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/issuer/mappingTemplates/CreateIssuerByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###createIssuerByIssuerAdmin:
+  ###  handler: api/issuer/createIssuerByIssuerAdmin.handler
+  ###  description: POST /createIssuerByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/createIssuerByIssuerAdmin
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: issuerBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to create an issuer by issuerAdmin
+  ###          description: api to create an issuer by sending required parameters as a issuerAdmin user
+  ###          #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: CreateIssuerByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/issuer/mappingTemplates/CreateIssuerByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  deleteIssuerByIssuerAdmin:
+    handler: api/issuer/deleteIssuerByIssuerAdmin.handler
+    description: POST /deleteIssuerByIssuerAdmin
+    events:
+      - http:
+          path: api/deleteIssuerByIssuerAdmin
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: issuerBodyRequestValidator
+          documentation:
+            summary: api to delete an issuer by issuerAdmin
+            description: api to delete an issuer (status will become DELETED and not actually delete the data) by deleteIssuerByIssuerAdmin
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: DeleteIssuerByIssuerAdminRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/issuer/mappingTemplates/DeleteIssuerByIssuerAdminRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  getIssuerByAll:
+    handler: api/issuer/getIssuerByAll.handler
+    description: POST /getIssuerByAll
+    events:
+      - http:
+          path: api/getIssuerByAll
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: issuerBodyRequestValidator
+          documentation:
+            summary: api to get an issuer by all
+            description: api to get an issuer by all
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetIssuerByAllRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/issuer/mappingTemplates/GetIssuerByAllRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  getIssuersByAll:
+    handler: api/issuer/getIssuersByAll.handler
+    description: POST /getIssuersByAll
+    events:
+      - http:
+          path: api/getIssuersByAll
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: issuerBodyRequestValidator
+          documentation:
+            summary: api to get many issuers
+            description: api to get many issuers
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetIssuersByAllRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/issuer/mappingTemplates/GetIssuersByAllRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###updateIssuerByIssuerAdmin:
+  ###  handler: api/issuer/updateIssuerByIssuerAdmin.handler
+  ###  description: PATCH /updateIssuerByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/updateIssuerByIssuerAdmin
+  ###        method: patch
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: issuerBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to update an issuer
+  ###          description: api to update an issuer
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: UpdateIssuerByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/issuer/mappingTemplates/UpdateIssuerByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  uploadUserResourceImagesByUser:
+    handler: api/userResource/uploadUserResourceImagesByUser.handler
+    description: POST /uploadUserResourceImagesByUser the image you wish to upload
+    events:
+      - http:
+          path: api/uploadUserResourceImagesByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to upload userResources as proof in image format
+            description: api to upload userResources as proof in image format
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: UploadUserResourceImagesByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/UploadUserResourceImagesByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  deleteUserResourceImageByUser:
+    handler: api/userResource/deleteUserResourceImageByUser.handler
+    description: POST /deleteUserResourceImageByUser the image you wish to delete
+    events:
+      - http:
+          path: api/deleteUserResourceImageByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to delete userResources as proof in image format
+            description: api to delete userResources as proof in image format
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: DeleteUserResourceImageByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/DeleteUserResourceImageByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  getUserResourceImagesByAll:
+    handler: api/userResource/getUserResourceImagesByAll.handler
+    description: POST /getUserResourceImagesByAll the image you wish to get
+    events:
+      - http:
+          path: api/getUserResourceImagesByAll
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to get userResources as proof in image format
+            description: api to get userResources as proof in image format
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetUserResourceImagesByAllRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/GetUserResourceImagesByAllRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  getUserResourceImagesByUser:
+    handler: api/userResource/getUserResourceImagesByUser.handler
+    description: POST /getUserResourceImagesByUser the image you wish to get
+    events:
+      - http:
+          path: api/getUserResourceImagesByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to get userResources as proof in image format
+            description: api to get userResources as proof in image format
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetUserResourceImagesByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/GetUserResourceImagesByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  createUserResourceByUser:
+    handler: api/userResource/createUserResourceByUser.handler
+    description: POST /createUserResourceByUser
+    events:
+      - http:
+          path: api/createUserResourceByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to create an userResource by User
+            description: api to create an userResource by sending required parameters (status will become PENDING until approved) as an User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: CreateUserResourceByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/CreateUserResourceByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###createUserResourceByIssuerAdmin:
+  ###  handler: api/userResource/createUserResourceByIssuerAdmin.handler
+  ###  description: POST /createUserResourceByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/createUserResourceByIssuerAdmin
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: userResourceBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to create an userResource by IssuerAdmin
+  ###          description: api to create an userResource by sending required parameters (status will become PENDING until approved) as an User
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: CreateUserResourceByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/userResource/mappingTemplates/CreateUserResourceByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  deleteUserResourceByUser:
+    handler: api/userResource/deleteUserResourceByUser.handler
+    description: POST /deleteUserResourceByUser
+    events:
+      - http:
+          path: api/deleteUserResourceByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to delete an userResource by User
+            description: api to delete an userResource by sending required parameters (status will become PENDING until approved) as an User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: DeleteUserResourceByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/DeleteUserResourceByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###deleteUserResourceByIssuerAdmin:
+  ###  handler: api/userResource/deleteUserResourceByIssuerAdmin.handler
+  ###  description: POST /deleteUserResourceByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/deleteUserResourceByIssuerAdmin
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: userResourceBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to delete an userResource by IssuerAdmin
+  ###          description: api to delete an userResource by sending required parameters (status will become PENDING until approved) as an User
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: DeleteUserResourceByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/userResource/mappingTemplates/DeleteUserResourceByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  getUserResourceByGuest:
+    handler: api/userResource/getUserResourceByGuest.handler
+    description: POST /getUserResourceByGuest
+    events:
+      - http:
+          path: api/getUserResourceByGuest
+          method: post
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to get an userResource by guest
+            description: api to get an userResource by guest
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetUserResourceByGuestRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/GetUserResourceByGuestRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###getUserResourceByVerifier:
+  ###  handler: api/userResource/getUserResourceByVerifier.handler
+  ###  description: POST /getUserResourceByVerifier
+  ###  events:
+  ###    - http:
+  ###        path: api/getUserResourceByVerifier
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: userResourceBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to get an userResource by verifier
+  ###          description: api to get an userResource by verifier
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: GetUserResourceByVerifierRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/userResource/mappingTemplates/GetUserResourceByVerifierRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  getUserResourceByUser:
+    handler: api/userResource/getUserResourceByUser.handler
+    description: POST /getUserResourceByUser
+    events:
+      - http:
+          path: api/getUserResourceByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to get an userResource by User
+            description: api to get an userResource by User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetUserResourceByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/GetUserResourceByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###getUserResourceByIssuerAdmin:
+  ###  handler: api/userResource/getUserResourceByIssuerAdmin.handler
+  ###  description: POST /getUserResourceByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/getUserResourceByIssuerAdmin
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: userResourceBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to get an userResource
+  ###          description: api to get an userResource
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: GetUserResourceByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/userResource/mappingTemplates/GetUserResourceByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  getUserResourcesByUser:
+    handler: api/userResource/getUserResourcesByUser.handler
+    description: POST /getUserResourcesByUser
+    events:
+      - http:
+          path: api/getUserResourcesByUser
+          method: post
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to get many userResources by User
+            description: api to get many userResources by User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: GetUserResourcesByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/GetUserResourcesByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###getUserResourcesByIssuerAdmin:
+  ###  handler: api/userResource/getUserResourcesByIssuerAdmin.handler
+  ###  description: POST /getUserResourcesByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/getUserResourcesByIssuerAdmin
+  ###        method: post
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: userResourceBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to get many userResources by IssuerAdmin
+  ###          description: api to get many userResources by IssuerAdmin
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: GetUserResourcesByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/userResource/mappingTemplates/GetUserResourcesByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+  updateUserResourceByUser:
+    handler: api/userResource/updateUserResourceByUser.handler
+    description: PATCH /updateUserResourceByUser
+    events:
+      - http:
+          path: api/updateUserResourceByUser
+          method: patch
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayCognitoAuthorizer
+            scopes:
+              - email
+              - openid
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
+          reqValidatorName: userResourceBodyRequestValidator
+          documentation:
+            summary: api to update a userResource by User
+            description: api to a many userResource by User
+            #requestHeaders:
+            #  - name: x-some-header
+            #    description: some header value
+            #    required: true # true or false
+            requestBody:
+              description: validates req body params passed
+            requestModels:
+              application/json: UpdateUserResourceByUserRequest
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(api/userResource/mappingTemplates/UpdateUserResourceByUserRequestMappingTemplate.vm)}
+            passThrough: NEVER
+          response:
+            statusCodes: ${self:custom.responseStatusCodes}
+  ###updateUserResourceByIssuerAdmin:
+  ###  handler: api/userResource/updateUserResourceByIssuerAdmin.handler
+  ###  description: PATCH /updateUserResourceByIssuerAdmin
+  ###  events:
+  ###    - http:
+  ###        path: api/updateUserResourceByIssuerAdmin
+  ###        method: patch
+  ###        authorizer:
+  ###          type: COGNITO_USER_POOLS
+  ###          authorizerId:
+  ###            Ref: ApiGatewayCognitoAuthorizer
+  ###          scopes:
+  ###            - email
+  ###            - openid
+  ###        cors:
+  ###          origin: '*'
+  ###          headers: ${self:custom.allowedHeaders}
+  ###        reqValidatorName: userResourceBodyRequestValidator
+  ###        documentation:
+  ###          summary: api to update a userResource by IssuerAdmin
+  ###          description: api to update a userResource by IssuerAdmin
+  #requestHeaders:
+  #  - name: x-some-header
+  #    description: some header value
+  #    required: true # true or false
+  ###          requestBody:
+  ###            description: validates req body params passed
+  ###          requestModels:
+  ###            application/json: UpdateUserResourceByIssuerAdminRequest
+  ###        integration: lambda
+  ###        request:
+  ###          template:
+  ###            application/json: ${file(api/userResource/mappingTemplates/UpdateUserResourceByIssuerAdminRequestMappingTemplate.vm)}
+  ###          passThrough: NEVER
+  ###        response:
+  ###          statusCodes: ${self:custom.responseStatusCodes}
+
+userResources:
+  UserResources:
+    ###################################################  VPC & related  ###################################################
+    # Vpc:
+    #   Type: AWS::EC2::VPC
+    #   Properties:
+    #     CidrBlock: 10.0.0.0/16
+    # PublicSubnet1:
+    #   Type: AWS::EC2::Subnet
+    #   Properties:
+    #     AvailabilityZone: us-west-2d
+    #     CidrBlock: 10.0.21.0/24
+    #     VpcId:
+    #       Ref: Vpc
+    # Eip:
+    #   Type: AWS::EC2::EIP
+    #   Properties:
+    #     Domain: vpc
+    # NatGateway:
+    #   Type: AWS::EC2::NatGateway
+    #   Properties:
+    #     AllocationId:
+    #       Fn::GetAtt:
+    #         - Eip
+    #         - AllocationId
+    #     SubnetId:
+    #       Ref: PublicSubnet1
+    ##################################### above is needed
+    #PrivateRouteTable:
+    #  Type: AWS::EC2::RouteTable
+    #  Properties:
+    #    VpcId:
+    #      Ref: Vpc
+    #PrivateRoute:
+    #  Type: AWS::EC2::Route
+    #  Properties:
+    #    RouteTableId:
+    #      Ref: PrivateRouteTable
+    #    DestinationCidrBlock: 0.0.0.0/0
+    #    NatGatewayId:
+    #      Ref: NatGateway
+    ###################################### below is needed
+    # InternetGateway:
+    #   Type: AWS::EC2::InternetGateway
+    # VPCGatewayAttachment:
+    #   Type: AWS::EC2::VPCGatewayAttachment
+    #   Properties:
+    #     VpcId:
+    #       Ref: Vpc
+    #     InternetGatewayId:
+    #       Ref: InternetGateway
+    # PublicRouteTable:
+    #   Type: AWS::EC2::RouteTable
+    #   Properties:
+    #     VpcId:
+    #       Ref: Vpc
+    # PublicRoute:
+    #   Type: AWS::EC2::Route
+    #   Properties:
+    #     RouteTableId:
+    #       Ref: PublicRouteTable
+    #     DestinationCidrBlock: 0.0.0.0/0
+    #     GatewayId:
+    #       Ref: InternetGateway
+    # SubnetRouteTableAssociationPublic1:
+    #   Type: AWS::EC2::SubnetRouteTableAssociation
+    #   Properties:
+    #     SubnetId:
+    #       Ref: PublicSubnet1
+    #     RouteTableId:
+    #       Ref: PublicRouteTable
+    # LambdaSecurityGroup:
+    #   Type: 'AWS::EC2::SecurityGroup'
+    #   Properties:
+    #     GroupName: ${self:service}-${self:provider.stage}-lambda-${self:provider.environment.VERSION}
+    #     GroupDescription: Allow all outbound and inbound traffic
+    #     SecurityGroupIngress:
+    #       - IpProtocol: -1
+    #         CidrIp: 127.0.0.1/32
+    #     VpcId:
+    #       Ref: Vpc
+    ###################################################  S3  ###################################################
+    S3UserResourceBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.USERRESOURCE_BUCKET_NAME}
+        VersioningConfiguration:
+          Status: Enabled
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+    S3UserIdentityBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.USER_IDENTITY_BUCKET_NAME}
+        VersioningConfiguration:
+          Status: Enabled
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+    ###################################################  Cognito User Pool  ###################################################
+    #appCognitoUserPool:
+    #  Type: AWS::Cognito::UserPool
+    #  Properties:
+    #    UserPoolName: app_auth_cognito_user_pool
+    #    #LambdaConfig:
+    #    #  PreSignUp: !GetAtt PreSignupLambdaFunction.Arn
+    #    Policies:
+    #      PasswordPolicy:
+    #        MinimumLength: 10
+    #    UsernameAttributes:
+    #      - email
+    #    Schema:
+    #      - AttributeDataType: String
+    #        Name: email
+    #        Required: false
+    #CognitoUserPoolClient:
+    #  Type: AWS::Cognito::UserPoolClient
+    #  Properties:
+    #    ClientName: app_auth_cognito_client
+    #    UserPoolId: !Ref appCognitoUserPool
+    ###################################################  API Gateway Authorizers  ###################################################
+    ApiGatewayCognitoAuthorizer:
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: CognitoUserPool-${self:provider.environment.VERSION}
+        Type: COGNITO_USER_POOLS
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ProviderARNs:
+          - ${self:custom.settings.cognitoARN-${env:ENV_NAME}}
+    ###################################################  Request Validators  ###################################################
+    openaiParseWikiBodyRequestValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'openaiParseWikiBodyRequestValidator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true # true or false
+        ValidateRequestParameters: false # true or false
+    premiumWaitlistLeadBodyRequestValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'premiumWaitlistLeadBodyRequestValidator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true # true or false
+        ValidateRequestParameters: false # true or false
+    feedbackBodyRequestValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'feedbackBodyRequestValidator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true # true or false
+        ValidateRequestParameters: false # true or false
+    userBodyRequestValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'userBodyRequestValidator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true # true or false
+        ValidateRequestParameters: false # true or false
+    issuerBodyRequestValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'issuerBodyRequestValidator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true # true or false
+        ValidateRequestParameters: false # true or false
+    userResourceBodyRequestValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'userResourceBodyRequestValidator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true # true or false
+        ValidateRequestParameters: false # true or false
+
+    ###################################################  Tables  ###################################################
+    IssuerSearchKeysTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ISSUERSEARCHKEYS-${self:provider.environment.ENV_NAME}
+        AttributeDefinitions:
+          - AttributeName: partitionKey
+            AttributeType: S
+          - AttributeName: searchKey
+            AttributeType: S
+          #- AttributeName: keyName
+          #  AttributeType: S
+          - AttributeName: nameInEnglish
+            AttributeType: S
+          #- AttributeName: keyType
+          #  AttributeType: N
+          - AttributeName: status
+            AttributeType: N
+          #- AttributeName: createdAt
+          #  AttributeType: S
+          #- AttributeName: city
+          #  AttributeType: S
+          #- AttributeName: province
+          #  AttributeType: S
+          #- AttributeName: country
+          #  AttributeType: S
+          - AttributeName: countryPartitionKey
+            AttributeType: S
+          - AttributeName: countryProvincePartitionKey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: partitionKey
+            KeyType: HASH
+          - AttributeName: searchKey
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        GlobalSecondaryIndexes:
+          - IndexName: countryPartitionKey-gsi_searchKey-sort
+            KeySchema:
+              - AttributeName: countryPartitionKey
+                KeyType: HASH
+              - AttributeName: searchKey
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: countryProvincePartitionKey-gsi_searchKey-sort
+            KeySchema:
+              - AttributeName: countryProvincePartitionKey
+                KeyType: HASH
+              - AttributeName: searchKey
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: nameInEnglish-gsi_searchKey-sort
+            KeySchema:
+              - AttributeName: nameInEnglish
+                KeyType: HASH
+              - AttributeName: searchKey
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: status-gsi_searchKey-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: searchKey
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+    PremiumWaitlistLeadTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: PREMIUMWAITLISTLEAD-${self:provider.environment.ENV_NAME}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          #- AttributeName: email
+          #  AttributeType: S
+          - AttributeName: status
+            AttributeType: N
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        GlobalSecondaryIndexes:
+          - IndexName: status-gsi_createdAt-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+    FeedbackTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: FEEDBACK-${self:provider.environment.ENV_NAME}
+        AttributeDefinitions:
+          - AttributeName: userIdOrEmail
+            AttributeType: S
+          #- AttributeName: isGuest
+          #  AttributeType: B
+          #- AttributeName: feedbackMessage
+          #  AttributeType: S
+          - AttributeName: feedbackType
+            AttributeType: N
+          #- AttributeName: createdAt # ISO-8601 date time format
+          #  AttributeType: S
+          - AttributeName: feedbackTypeCreatedAt
+            AttributeType: S
+          - AttributeName: isGuestCreatedAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userIdOrEmail
+            KeyType: HASH
+          - AttributeName: feedbackTypeCreatedAt
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        GlobalSecondaryIndexes:
+          - IndexName: feedbackType-gsi_createdAt-sort
+            KeySchema:
+              - AttributeName: feedbackType
+                KeyType: HASH
+              - AttributeName: isGuestCreatedAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: USERS-${self:provider.environment.ENV_NAME}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          #- AttributeName: status
+          #  AttributeType: N
+          #- AttributeName: dob  # ISO-8601 date time format
+          #  AttributeType: S
+          #- AttributeName: curName  # {name, begDate, imagesId}
+          #  AttributeType: S
+          #- AttributeName: previousNames  # [{name, begDate, endDate, imagesId}, ...]
+          #  AttributeType: S
+          #- AttributeName: preferredName
+          #  AttributeType: S
+          #- AttributeName: createdAt  # ISO-8601 date time format
+          #  AttributeType: S
+          #- AttributeName: identityPrivacy
+          #  AttributeType: N
+          #- AttributeName: extraFreeUserResources
+          #  AttributeType: N
+          #- AttributeName: subscriptions  # {subscriptionName, begDate, endDate}
+          #  AttributeType: S
+          #- AttributeName: hasEverPaid
+          #  AttributeType: B
+          #- AttributeName: messageForUser
+          #  AttributeType: B
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+    IssuersTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ISSUERS-${self:provider.environment.ENV_NAME}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          #- AttributeName: name  #in English
+          #  AttributeType: S
+          #- AttributeName: otherNames
+          #  AttributeType: S #array of strings
+          - AttributeName: type
+            AttributeType: N
+          - AttributeName: status
+            AttributeType: N
+          - AttributeName: country
+            AttributeType: S
+          #- AttributeName: province
+          #  AttributeType: S
+          #- AttributeName: city
+          #  AttributeType: S
+          #- AttributeName: abbreviations
+          #  AttributeType: S #array of strings
+          #- AttributeName: creatorId
+          #  AttributeType: S
+          #- AttributeName: website
+          #  AttributeType: S
+          - AttributeName: wikiLink #required in english to avoid issuer duplicates
+            AttributeType: S
+          #- AttributeName: searchKeys  #reference to search table
+          #  AttributeType: S #array of strings
+          - AttributeName: createdAt # ISO-8601 date time format
+            AttributeType: S
+          - AttributeName: updatedAt # ISO-8601 date time format
+            AttributeType: S
+          - AttributeName: localityStatusType # sort key LSI
+            AttributeType: S
+          - AttributeName: localityTypeStatus # sort key LSI
+            AttributeType: S
+          - AttributeName: typeStatusLocality # sort key LSI
+            AttributeType: S
+          - AttributeName: statusTypeLocality # sort key GSI
+            AttributeType: S
+          - AttributeName: countryLocalityType # sort key GSI
+            AttributeType: S
+          - AttributeName: countryTypeLocality # sort key GSI
+            AttributeType: S
+          - AttributeName: typeCountryLocality # sort key GSI
+            AttributeType: S
+          - AttributeName: countryLocalityStatus # sort key GSI
+            AttributeType: S
+          - AttributeName: countryStatusLocality # sort key GSI
+            AttributeType: S
+          - AttributeName: statusCountryLocality # sort key GSI
+            AttributeType: S
+        KeySchema:
+          - AttributeName: country
+            KeyType: HASH
+          - AttributeName: wikiLink
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        GlobalSecondaryIndexes:
+          - IndexName: id-gsi
+            KeySchema:
+              - AttributeName: id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: status-gsi_createdAt-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: status-gsi_updatedAt-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: updatedAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: status-gsi_countryLocalityType-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: countryLocalityType
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: status-gsi_countryTypeLocality-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: countryTypeLocality
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: status-gsi_typeCountryLocality-sort
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: typeCountryLocality
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: type-gsi_countryLocalityStatus-sort
+            KeySchema:
+              - AttributeName: type
+                KeyType: HASH
+              - AttributeName: countryLocalityStatus
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: type-gsi_countryStatusLocality-sort
+            KeySchema:
+              - AttributeName: type
+                KeyType: HASH
+              - AttributeName: countryStatusLocality
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: type-gsi_statusCountryLocality-sort
+            KeySchema:
+              - AttributeName: type
+                KeyType: HASH
+              - AttributeName: statusCountryLocality
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - id
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        LocalSecondaryIndexes:
+          - IndexName: localityStatusType-sort
+            KeySchema:
+              - AttributeName: country
+                KeyType: HASH
+              - AttributeName: localityStatusType
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: localityTypeStatus-sort
+            KeySchema:
+              - AttributeName: country
+                KeyType: HASH
+              - AttributeName: localityTypeStatus
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: typeStatusLocality-sort
+            KeySchema:
+              - AttributeName: country
+                KeyType: HASH
+              - AttributeName: typeStatusLocality
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: statusTypeLocality-sort
+            KeySchema:
+              - AttributeName: country
+                KeyType: HASH
+              - AttributeName: statusTypeLocality
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: createdAt-sort
+            KeySchema:
+              - AttributeName: country
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+    UserResourcesTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: USERRESOURCES-${self:provider.environment.ENV_NAME}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          #- AttributeName: userNameAtIssue
+          #  AttributeType: S
+          - AttributeName: studentId
+            AttributeType: S
+          - AttributeName: issuerId
+            AttributeType: S
+          - AttributeName: linkId
+            AttributeType: S
+          #- AttributeName: privacyStatus
+          #  AttributeType: S
+          #- AttributeName: issuerName
+          #  AttributeType: S
+          #- AttributeName: userResourceTitle
+          #  AttributeType: S
+          #- AttributeName: userResourceType
+          #  AttributeType: N
+          #- AttributeName: issueDateTime  # ISO-8601 date time format
+          #  AttributeType: S
+          #- AttributeName: expirationDateTime # ISO-8601 date time format
+          #  AttributeType: S
+          #- AttributeName: perks
+          #  AttributeType: S
+          #- AttributeName: level
+          #  AttributeType: S
+          #- AttributeName: templatePhotoId
+          #  AttributeType: S
+          #- AttributeName: validityLevel
+          #  AttributeType: N
+          #- AttributeName: status
+          #  AttributeType: N
+          - AttributeName: privacyStatus
+            AttributeType: N
+          #- AttributeName: statusMessage
+          #  AttributeType: S
+          #- AttributeName: createdBy
+          #  AttributeType: S
+          #- AttributeName: createdAt  # ISO-8601 date time format
+          #  AttributeType: S
+          #- AttributeName: updatedAt  # ISO-8601 date time format
+          #  AttributeType: S
+          #- AttributeName: imagesId  # find images in S3
+          #  AttributeType: S
+          - AttributeName: userNameAtIssueIssueDateTimeUserResourceTitle
+            AttributeType: S
+          - AttributeName: userResourceTypeStatusStudentId
+            AttributeType: S
+          - AttributeName: issueDateTimeUserNameAtIssue
+            AttributeType: S
+          - AttributeName: validityLevelStatusCreatedAt
+            AttributeType: S
+          - AttributeName: statusValidityLevelCreatedAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: issuerId
+            KeyType: HASH
+          - AttributeName: userNameAtIssueIssueDateTimeUserResourceTitle
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        GlobalSecondaryIndexes:
+          - IndexName: userId-gsi_issuerId-sort
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: issuerId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: userId-gsi_privacyStatus-sort
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: privacyStatus
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: id-gsi
+            KeySchema:
+              - AttributeName: id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          - IndexName: linkId-gsi
+            KeySchema:
+              - AttributeName: linkId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          #- IndexName: validityLevel-gsi_issuerId-sort
+          #  KeySchema:
+          #    - AttributeName: validityLevel
+          #      KeyType: HASH
+          #    - AttributeName: issuerId
+          #      KeyType: RANGE
+          #  Projection:
+          #    ProjectionType: ALL
+          #  ProvisionedThroughput:
+          #    ReadCapacityUnits: 1
+          #    WriteCapacityUnits: 1
+        LocalSecondaryIndexes:
+          - IndexName: studentId-sort
+            KeySchema:
+              - AttributeName: issuerId
+                KeyType: HASH
+              - AttributeName: studentId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: userResourceTypeStatusStudentId-sort
+            KeySchema:
+              - AttributeName: issuerId
+                KeyType: HASH
+              - AttributeName: userResourceTypeStatusStudentId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: issueDateTimeUserNameAtIssue-sort
+            KeySchema:
+              - AttributeName: issuerId
+                KeyType: HASH
+              - AttributeName: issueDateTimeUserNameAtIssue
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: validityLevelStatusCreatedAt-sort
+            KeySchema:
+              - AttributeName: issuerId
+                KeyType: HASH
+              - AttributeName: validityLevelStatusCreatedAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: statusValidityLevelCreatedAt-sort
+            KeySchema:
+              - AttributeName: issuerId
+                KeyType: HASH
+              - AttributeName: statusValidityLevelCreatedAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+    GatewayResponseDefault5XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
